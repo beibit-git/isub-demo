@@ -250,6 +250,8 @@ td:first-child{color:var(--ink)}
 .lacc .rd{font-size:10.5px;opacity:.65;font-family:var(--font-mono)}
 .lhint{font-size:11px;color:var(--ink-3);text-align:center;margin-top:12px}
 .llangrow{display:flex;justify-content:flex-end;margin-bottom:10px}
+.ecp-conn{font-size:11.5px;font-weight:600;margin:2px 0 12px;min-height:15px}
+.ecp-conn.ok{color:var(--ok)}.ecp-conn.err{color:var(--danger)}.ecp-conn.busy{color:var(--info)}
 .uwrap{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;margin-left:4px}
 .uname{font-size:12.5px;font-weight:600;color:var(--ink)}.urole{font-size:10.5px;color:var(--ink-3)}
 @media(max-width:820px){.uwrap{display:none}}
@@ -1311,7 +1313,24 @@ tr.addedrow td{position:relative}
             </div>
             <div style="font-size:11.5px;opacity:.6">Защищённый контур</div>
           </div>
-          <div class="lform"><div class="in"><div class="llangrow"><span class="lang"><button class="on" data-lang="ru">RU</button><button data-lang="kz">KZ</button></span></div><h2 style="font-size:20px">Вход в систему</h2><div class="authtabs"><button>ЭЦП</button><button class="on">Логин / Пароль</button></div><div class="fld"><label>Имя пользователя</label><input class="inp" id="loginUser" value="admin"></div><div class="fld"><label>Пароль</label><input class="inp" id="loginPass" type="password" value="test123"></div><label class="check"><input type="checkbox"> Двухфакторная аутентификация</label><div style="display:flex;flex-direction:column;gap:10px"><button class="btn pri" id="loginBtn" style="justify-content:center;padding:11px">Войти</button><button class="btn ghost" style="justify-content:center;padding:11px">Зарегистрироваться по ИИН</button></div><div class="lhint">Выберите учётную запись слева — или войдите вручную.</div></div></div>
+          <div class="lform"><div class="in">
+            <div class="llangrow"><span class="lang"><button class="on" data-lang="ru">RU</button><button data-lang="kz">KZ</button></span></div>
+            <h2 style="font-size:20px">Вход в систему</h2>
+            <div class="authtabs"><button data-auth="ecp">ЭЦП</button><button class="on" data-auth="pass">Логин / Пароль</button></div>
+            <div id="authPass">
+              <div class="fld"><label>Имя пользователя</label><input class="inp" id="loginUser" value="admin"></div>
+              <div class="fld"><label>Пароль</label><input class="inp" id="loginPass" type="password" value="test123"></div>
+              <label class="check"><input type="checkbox"> Двухфакторная аутентификация</label>
+              <div style="display:flex;flex-direction:column;gap:10px"><button class="btn pri" id="loginBtn" style="justify-content:center;padding:11px">Войти</button><button class="btn ghost" style="justify-content:center;padding:11px">Зарегистрироваться по ИИН</button></div>
+              <div class="lhint">Выберите учётную запись слева — или войдите вручную.</div>
+            </div>
+            <div id="authEcp" style="display:none">
+              <div class="fld"><label>Хранилище ключей</label><div class="selbox"><select id="ecpStore"><option value="PKCS12">PKCS12 — файл ключа (RSA / ГОСТ)</option></select></div></div>
+              <div class="ecp-conn" id="ecpConn"></div>
+              <button class="btn pri" id="ecpBtn" style="justify-content:center;padding:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> Выбрать сертификат и войти</button>
+              <div class="lhint">Требуется запущенный <b>NCALayer</b>. Сертификат выбирается в окне NCALayer.</div>
+            </div>
+          </div></div>
         </div>
       </section>
 
@@ -1343,7 +1362,7 @@ tr.addedrow td{position:relative}
       <div class="nca-doc">Документ: <b id="ncaDocName">—</b></div>
       <div class="nca-status" id="ncaStatus"></div>
     </div>
-    <div class="modal-f"><button class="btn ghost sm" id="ncaCancel">Отмена</button><button class="btn pri sm" id="ncaSign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 20h9M16 3l4 4L8 19l-4 1 1-4z"/></svg> Подписать</button></div>
+    <div class="modal-f"><button class="btn ghost sm" id="ncaCancel">Отмена</button><button class="btn text" id="ncaDemo" style="margin-right:auto">Демо-подпись</button><button class="btn pri sm" id="ncaSign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 20h9M16 3l4 4L8 19l-4 1 1-4z"/></svg> Подписать</button></div>
   </div>
 </div>
 
@@ -1596,37 +1615,92 @@ tr.addedrow td{position:relative}
     if(modal.dataset.req==='1' && !document.getElementById('cmtText').value.trim()){document.getElementById('cmtWarn').style.display='block';return;}
     modal.classList.remove('on');var fn=pendingOk;pendingOk=null;if(fn)fn();
   });
-  // ===== Подписание ЭЦП через NCALayer (с демо-режимом) =====
-  var ncaModal=document.getElementById('ncaModal'),ncaOk=null,ncaWs=null;
-  function ncaCloseWs(){try{if(ncaWs)ncaWs.close();}catch(e){}ncaWs=null;}
+  // ===== Интеграция с NCALayer (kz.gov.pki.knca.commonUtils) =====
+  var NCA={ws:null,cb:null,
+    isOpen:function(){return this.ws&&this.ws.readyState===1;},
+    connect:function(onReady,onFail){
+      if(this.isOpen()){onReady&&onReady();return;}
+      try{var self=this,done=false;var ws=new WebSocket('wss://127.0.0.1:13579/');this.ws=ws;
+        var to=setTimeout(function(){if(done)return;done=true;try{ws.close();}catch(e){}self.ws=null;onFail&&onFail('timeout');},3000);
+        ws.onopen=function(){if(done)return;done=true;clearTimeout(to);onReady&&onReady();};
+        ws.onerror=function(){if(done)return;done=true;clearTimeout(to);self.ws=null;onFail&&onFail('error');};
+        ws.onmessage=function(ev){var r;try{r=JSON.parse(ev.data);}catch(e){return;}if(!r||r.code===undefined)return;var c=self.cb;self.cb=null;if(c)c(r);};
+        ws.onclose=function(){self.ws=null;};
+      }catch(e){onFail&&onFail('exception');}
+    },
+    send:function(method,args,cb){this.cb=cb;this.ws.send(JSON.stringify({module:'kz.gov.pki.knca.commonUtils',method:method,args:args||[]}));},
+    getActiveTokens:function(cb){this.send('getActiveTokens',[],cb);},
+    getKeyInfo:function(s,cb){this.send('getKeyInfo',[s],cb);},
+    signXml:function(s,xml,cb){this.send('signXml',[s,'SIGNATURE',xml,'',''],cb);}
+  };
+  function xmlEsc(s){return String(s||'').replace(/[<>&'"]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c];});}
+  function buildDocXml(name){return '<document xmlns="http://isub.mod.gov.kz"><title>'+xmlEsc(name)+'</title><issuer>ИСУБ</issuer></document>';}
+  function iinFrom(dn){var m=/(?:SERIALNUMBER|serialNumber)=\s*IIN\s*([0-9]{12})/i.exec(dn||'')||/\bIIN([0-9]{12})/i.exec(dn||'')||/\b([0-9]{12})\b/.exec(dn||'');return m?m[1]:'';}
+  function initialsOf(name){var p=String(name||'').trim().split(/\s+/).filter(Boolean);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||'ЭЦ';}
+  // ---- Подписание документа ----
+  var ncaModal=document.getElementById('ncaModal'),ncaOk=null,ncaReady=false;
   function openNca(docName,onOk){
-    ncaOk=onOk||null;
+    ncaOk=onOk||null;ncaReady=false;
     document.getElementById('ncaDocName').textContent=docName||'документ';
-    document.getElementById('ncaStatus').textContent='';document.getElementById('ncaStatus').className='nca-status';
-    var sb=document.getElementById('ncaSign');sb.disabled=false;
-    var conn=document.getElementById('ncaConn');conn.textContent='Подключение…';conn.className='nca-conn';
-    // синхронизировать сертификат с текущим пользователем
+    var st=document.getElementById('ncaStatus');st.textContent='';st.className='nca-status';st.style.color='';
+    document.getElementById('ncaSign').disabled=false;var _dm=document.getElementById('ncaDemo');if(_dm)_dm.disabled=false;
     var av=document.getElementById('avatar'),un=document.getElementById('uname');
     if(av)document.getElementById('ncaAva').textContent=av.textContent;
     if(un)document.getElementById('ncaCn').textContent=(un.textContent||'').toUpperCase();
+    var conn=document.getElementById('ncaConn');conn.textContent='Подключение к NCALayer…';conn.className='nca-conn';
     ncaModal.classList.add('on');
-    ncaCloseWs();
-    try{
-      var ws=new WebSocket('wss://127.0.0.1:13579/');var done=false;
-      var to=setTimeout(function(){if(done)return;done=true;try{ws.close();}catch(e){}conn.textContent='Демо-режим (NCALayer не запущен)';conn.className='nca-conn off';},1500);
-      ws.onopen=function(){if(done)return;done=true;clearTimeout(to);conn.textContent='NCALayer подключён';conn.className='nca-conn ok';ncaWs=ws;};
-      ws.onerror=function(){if(done)return;done=true;clearTimeout(to);conn.textContent='Демо-режим (NCALayer не запущен)';conn.className='nca-conn off';};
-    }catch(e){conn.textContent='Демо-режим';conn.className='nca-conn off';}
+    NCA.connect(function(){
+      var verified=false;var vt=setTimeout(function(){if(verified)return;conn.textContent='Демо-режим (NCALayer не отвечает)';conn.className='nca-conn off';ncaReady=false;},2500);
+      NCA.getActiveTokens(function(r){verified=true;clearTimeout(vt);
+        if(r&&r.code==='200'){conn.textContent='NCALayer подключён';conn.className='nca-conn ok';ncaReady=true;
+          if(r.responseObject){var sel=document.getElementById('ncaStore');sel.innerHTML='<option value="PKCS12">PKCS12 — файл ключа</option>';r.responseObject.forEach(function(tok){sel.insertAdjacentHTML('beforeend','<option value="'+tok+'">'+tok+'</option>');});}
+        } else {conn.textContent='Демо-режим (NCALayer не отвечает)';conn.className='nca-conn off';ncaReady=false;}
+      });
+    },function(){conn.textContent='Демо-режим (NCALayer не запущен)';conn.className='nca-conn off';ncaReady=false;});
   }
-  document.getElementById('ncaCancel').addEventListener('click',function(){ncaModal.classList.remove('on');ncaCloseWs();ncaOk=null;});
-  ncaModal.addEventListener('click',function(e){if(e.target===ncaModal){ncaModal.classList.remove('on');ncaCloseWs();ncaOk=null;}});
+  document.getElementById('ncaCancel').addEventListener('click',function(){ncaModal.classList.remove('on');ncaOk=null;});
+  ncaModal.addEventListener('click',function(e){if(e.target===ncaModal){ncaModal.classList.remove('on');ncaOk=null;}});
   document.getElementById('ncaSign').addEventListener('click',function(){
-    var sb=this,st=document.getElementById('ncaStatus');sb.disabled=true;st.className='nca-status busy';st.textContent='Подписание документа…';
-    setTimeout(function(){st.className='nca-status ok';st.textContent='✓ Документ подписан ЭЦП';
-      setTimeout(function(){ncaModal.classList.remove('on');ncaCloseWs();var fn=ncaOk;ncaOk=null;if(fn)fn();},650);
-    },850);
+    var sb=this,st=document.getElementById('ncaStatus');sb.disabled=true;st.style.color='';st.className='nca-status busy';
+    function finishOk(){st.className='nca-status ok';st.textContent='✓ Документ подписан ЭЦП';setTimeout(function(){ncaModal.classList.remove('on');var fn=ncaOk;ncaOk=null;if(fn)fn();},600);}
+    if(ncaReady&&NCA.isOpen()){
+      st.textContent='Подписание в NCALayer…';
+      var xml=buildDocXml(document.getElementById('ncaDocName').textContent);
+      NCA.signXml(document.getElementById('ncaStore').value||'PKCS12',xml,function(r){
+        if(r&&r.code==='200'){finishOk();}
+        else{st.className='nca-status';st.style.color='var(--danger)';st.textContent='Ошибка: '+((r&&r.message)||'подпись отменена');sb.disabled=false;}
+      });
+    } else { st.textContent='Подписание документа…';setTimeout(finishOk,750); }
+  });
+  document.getElementById('ncaDemo').addEventListener('click',function(){
+    var st=document.getElementById('ncaStatus');document.getElementById('ncaSign').disabled=true;this.disabled=true;
+    st.style.color='';st.className='nca-status busy';st.textContent='Демо-подписание…';
+    setTimeout(function(){st.className='nca-status ok';st.textContent='✓ Документ подписан (демо-режим)';setTimeout(function(){ncaModal.classList.remove('on');var fn=ncaOk;ncaOk=null;if(fn)fn();},600);},600);
   });
   document.querySelectorAll('[data-nca]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var v=b.closest('.view');openNca(dtitleText(v&&v.querySelector('.dtitle')),null);})});
+  // ---- Вход по ЭЦП ----
+  document.querySelectorAll('.authtabs [data-auth]').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('.authtabs [data-auth]').forEach(function(x){x.classList.toggle('on',x===b);});
+    document.getElementById('authPass').style.display=b.getAttribute('data-auth')==='pass'?'':'none';
+    document.getElementById('authEcp').style.display=b.getAttribute('data-auth')==='ecp'?'':'none';
+  });});
+  (function(){var eb=document.getElementById('ecpBtn');if(!eb)return;eb.addEventListener('click',function(){
+    var conn=document.getElementById('ecpConn');conn.textContent='Подключение к NCALayer…';conn.className='ecp-conn busy';eb.disabled=true;
+    function fail(msg){eb.disabled=false;conn.textContent=msg;conn.className='ecp-conn err';}
+    NCA.connect(function(){
+      var verified=false;var vt=setTimeout(function(){if(verified)return;fail('NCALayer не отвечает. Войдите по ролям (демо, слева).');},2500);
+      NCA.getActiveTokens(function(a){verified=true;clearTimeout(vt);
+        if(!(a&&a.code==='200')){fail('NCALayer не отвечает. Войдите по ролям (демо, слева).');return;}
+        conn.textContent='Выберите ключ и введите пароль в окне NCALayer…';conn.className='ecp-conn busy';
+        NCA.getKeyInfo(document.getElementById('ecpStore').value||'PKCS12',function(r){eb.disabled=false;
+          if(r&&r.code==='200'&&r.responseObject){var o=r.responseObject;var name=o.subjectCn||o.subjectDn||'Пользователь';var iin=iinFrom(o.subjectDn||o.subjectCn);
+            conn.textContent='';conn.className='ecp-conn';
+            doLogin({ini:initialsOf(name),name:name,role:'Вход по ЭЦП'+(iin?(' · ИИН '+iin):''),user:'ecp'});
+          } else {conn.textContent='Ошибка: '+((r&&r.message)||'сертификат не выбран');conn.className='ecp-conn err';}
+        });
+      });
+    },function(){fail('NCALayer не найден. Запустите NCALayer — или войдите по ролям (демо, слева).');});
+  });})();
   // ===== Рабочий жизненный цикл документов =====
   var _CHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
   var _X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -1725,7 +1799,7 @@ tr.addedrow td{position:relative}
     // Навигация / оболочка
     'Главное меню':'Басты мәзір','Разделы':'Бөлімдер','Прочее':'Басқа','Запасы':'Қорлар','Инвентаризация':'Түгендеу','Планирование':'Жоспарлау','Операции':'Операциялар','Интеграция · Сверка':'Интеграция · Салыстыру','Отчёты':'Есептер','Справочники':'Анықтамалықтар','Администрирование':'Әкімшілендіру','Выйти':'Шығу','Учёт боеприпасов':'Оқ-дәрі есебі','Просмотр':'Қарау','Редактирование':'Өңдеу','Только просмотр':'Тек қарау','К списку':'Тізімге','Полный доступ':'Толық қолжетімділік','Создание документов':'Құжат жасау','Командование части':'Бөлім қолбасшылығы','Командир части':'Бөлім командирі','Назначение исполнителя':'Орындаушыны тағайындау',
     // Логин
-    'Информационная система учёта боеприпасов':'Оқ-дәрі есебінің ақпараттық жүйесі','Учёт, планирование, операции и онлайн-сверка — в едином защищённом контуре.':'Есеп, жоспарлау, операциялар және онлайн-салыстыру — біртұтас қорғалған контурда.','Вход в систему':'Жүйеге кіру','Логин / Пароль':'Логин / Құпия сөз','Имя пользователя':'Пайдаланушы аты','Пароль':'Құпия сөз','Войти':'Кіру','Двухфакторная аутентификация':'Екі факторлы аутентификация','Зарегистрироваться по ИИН':'ЖСН бойынша тіркелу','Учётные записи для входа (по ролям)':'Кіру тіркелгілері (рөлдер бойынша)','Администратор':'Әкімші','Исполнитель воинской части':'Әскери бөлім орындаушысы','Согласующий (командование части)':'Келісуші (бөлім қолбасшылығы)','Утверждающий (командир части)':'Бекітуші (бөлім командирі)','Довольствующий орган':'Қамтамасыз етуші орган','Защищённый контур':'Қорғалған контур','Выберите учётную запись слева — или войдите вручную.':'Сол жақтан тіркелгіні таңдаңыз — немесе қолмен кіріңіз.','Министерство обороны':'Қорғаныс министрлігі','Республики Казахстан':'Қазақстан Республикасының',
+    'Информационная система учёта боеприпасов':'Оқ-дәрі есебінің ақпараттық жүйесі','Учёт, планирование, операции и онлайн-сверка — в едином защищённом контуре.':'Есеп, жоспарлау, операциялар және онлайн-салыстыру — біртұтас қорғалған контурда.','Вход в систему':'Жүйеге кіру','Логин / Пароль':'Логин / Құпия сөз','Выбрать сертификат и войти':'Сертификатты таңдап кіру','Хранилище ключей':'Кілттер қоймасы','Сертификат подписи':'Қолтаңба сертификаты','Демо-подпись':'Демо-қолтаңба','Действителен':'Жарамды','Отмена':'Болдырмау','Имя пользователя':'Пайдаланушы аты','Пароль':'Құпия сөз','Войти':'Кіру','Двухфакторная аутентификация':'Екі факторлы аутентификация','Зарегистрироваться по ИИН':'ЖСН бойынша тіркелу','Учётные записи для входа (по ролям)':'Кіру тіркелгілері (рөлдер бойынша)','Администратор':'Әкімші','Исполнитель воинской части':'Әскери бөлім орындаушысы','Согласующий (командование части)':'Келісуші (бөлім қолбасшылығы)','Утверждающий (командир части)':'Бекітуші (бөлім командирі)','Довольствующий орган':'Қамтамасыз етуші орган','Защищённый контур':'Қорғалған контур','Выберите учётную запись слева — или войдите вручную.':'Сол жақтан тіркелгіні таңдаңыз — немесе қолмен кіріңіз.','Министерство обороны':'Қорғаныс министрлігі','Республики Казахстан':'Қазақстан Республикасының',
     // Статусы
     'Черновик':'Жоба','На согласовании':'Келісуде','На утверждении':'Бекітуде','На подписании':'Қол қоюда','На подтверждении':'Растауда','Утверждён':'Бекітілді','Утверждено':'Бекітілді','Согласовал':'Келісілді','Согласовано':'Келісілді','Исполненный':'Орындалды','Исполнен':'Орындалды','На исполнении':'Орындауда','Открытый':'Ашық','Закрытый':'Жабық','Отказанный':'Бас тартылды','Отказанная':'Бас тартылды','Отклонён':'Қабылданбады','Отклонено':'Қабылданбады','Готов':'Дайын','Не готов':'Дайын емес','Ограниченно готов':'Шектеулі дайын','Ожидает вас':'Сізді күтуде','Ожидает исполнителя':'Орындаушыны күтуде','Сформировано':'Қалыптастырылды','Подтверждено':'Расталды','Подтверждён':'Расталды',
     // qseg / фильтры
