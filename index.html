@@ -321,6 +321,25 @@ td:first-child{color:var(--ink)}
 .modal-b textarea{width:100%;min-height:92px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
 .modal-b .warnmsg{font-size:11.5px;color:var(--warn);margin-top:8px;display:none}
 .modal-f{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+/* NCALayer */
+.modal.nca{max-width:440px}
+.nca-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);background:linear-gradient(100deg,#0b3b6f,#0a2547);color:#fff;border-radius:14px 14px 0 0}
+.nca-brand{font-weight:700;font-size:15px;letter-spacing:.02em}
+.nca-mark{background:#e63946;color:#fff;font-size:11px;font-weight:800;padding:2px 6px;border-radius:5px;margin-right:5px;letter-spacing:.02em}
+.nca-conn{margin-left:auto;font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(255,255,255,.15)}
+.nca-conn.ok{background:rgba(84,177,110,.9)}.nca-conn.off{background:rgba(214,154,52,.9)}
+.nca-sub{font-size:12px;color:var(--ink-3);margin-bottom:14px}
+.nca-fl{display:flex;flex-direction:column;gap:6px;margin-bottom:13px;font-size:12px}
+.nca-fl>span{color:var(--ink-3);font-weight:600}
+.nca-fl .selbox select{width:100%;min-width:0}
+.nca-cert{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2)}
+.nca-ava{width:36px;height:36px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px;display:grid;place-items:center;flex:none}
+.nca-ct{flex:1;min-width:0}
+.nca-cn{font-size:13px;font-weight:700;color:var(--ink)}
+.nca-meta{font-size:10.5px;color:var(--ink-3);font-family:var(--font-mono)}
+.nca-doc{font-size:12px;color:var(--ink-2);margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)}
+.nca-status{font-size:12px;font-weight:600;margin-top:10px;min-height:16px}
+.nca-status.ok{color:var(--ok)}.nca-status.busy{color:var(--info)}
 @media(max-width:1000px){.shell{grid-template-columns:1fr}.rail{display:none}.tiles,.mods,.kpis,.mgrid{grid-template-columns:repeat(2,1fr)}.dgrid{grid-template-columns:1fr}.loginwrap{grid-template-columns:1fr}.lbrand{display:none}}
 </style>
 </head>
@@ -719,7 +738,7 @@ td:first-child{color:var(--ink)}
           <button data-p="i-ved">Ведомость номерного учёта</button>
         </div>
         <div class="subpane on" id="p-i-don">
-          <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № донесения, части…"></div><button class="btn pri filt-cta" data-open="v-donesenie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Сформировать донесение</button></div>
+          <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № донесения, части…"></div><button class="btn pri filt-cta" data-create="v-donesenie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Сформировать донесение</button></div>
           <div class="tblwrap"><div class="scroll"><table>
             <thead><tr><th>№ донесения</th><th>Дата создания</th><th>Воинская часть/учреждение</th><th>Начало периода</th><th>Конец периода</th><th>Статус</th><th></th></tr></thead>
             <tbody>
@@ -785,7 +804,7 @@ td:first-child{color:var(--ink)}
       <section class="view" id="v-plan" data-crumb="Планирование|Заявки">
         <div class="page-h"><span class="eyebrow">Планирование</span><h2>Заявки на боеприпасы</h2></div>
         <div class="flow-cta" style="margin-bottom:14px"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span><span class="tx"><span class="a">Требуется ваше действие · 14 заявок</span><span class="b">Заявки ожидают вашего согласования</span><span class="c">Откройте заявку, чтобы согласовать, отправить на доработку или отказать.</span></span><span class="acts"><button class="btn pri" data-open="v-request">Перейти к согласованию</button></span></div>
-        <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № исходящего…"></div><div class="qseg"><button class="on">Все <span class="cnt">86</span></button><button>На согласовании <span class="cnt">14</span></button><button>Утверждено <span class="cnt">41</span></button></div><button class="btn pri filt-cta" data-open="v-request"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать заявку</button></div>
+        <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № исходящего…"></div><div class="qseg"><button class="on">Все <span class="cnt">86</span></button><button>На согласовании <span class="cnt">14</span></button><button>Утверждено <span class="cnt">41</span></button></div><button class="btn pri filt-cta" data-create="v-request"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать заявку</button></div>
         <div class="tblwrap"><div class="scroll"><table>
           <thead><tr><th>Воинская часть/учреждение</th><th>Дата создания</th><th>Номер исходящего документа</th><th>Дата утверждения</th><th>Тип заявки</th><th>Статус заявки</th><th></th></tr></thead>
           <tbody>
@@ -872,7 +891,7 @@ td:first-child{color:var(--ink)}
               <button class="tl-cat" data-cat="util"><span>Накладная на продукты утилизации</span><span class="tl-n">2</span></button>
             </aside>
             <div class="tl-main">
-              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по рег. номеру, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">8</span></button><button>Черновик <span class="cnt">2</span></button><button>На утверждении <span class="cnt">1</span></button><button>Исполненный <span class="cnt">2</span></button></div><button class="btn pri filt-cta" data-open="v-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать наряд</button></div>
+              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по рег. номеру, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">8</span></button><button>Черновик <span class="cnt">2</span></button><button>На утверждении <span class="cnt">1</span></button><button>Исполненный <span class="cnt">2</span></button></div><button class="btn pri filt-cta" data-create="v-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать наряд</button></div>
               <div class="tblwrap"><div class="scroll"><table>
                 <thead><tr><th>Регистрационный номер</th><th>Дата документа</th><th>Тип наряда</th><th>Отправитель, В/ч</th><th>Получатель, В/ч</th><th>Статус документа</th><th></th></tr></thead>
                 <tbody>
@@ -898,7 +917,7 @@ td:first-child{color:var(--ink)}
               <button class="tl-cat" data-cat="util"><span>Накладная на продукты утилизации</span><span class="tl-n">2</span></button>
             </aside>
             <div class="tl-main">
-              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № накладной, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">7</span></button><button>Черновик <span class="cnt">2</span></button><button>На утверждении <span class="cnt">2</span></button><button>Исполненный <span class="cnt">3</span></button></div><button class="btn pri filt-cta" data-open="v-waybill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать накладную</button></div>
+              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № накладной, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">7</span></button><button>Черновик <span class="cnt">2</span></button><button>На утверждении <span class="cnt">2</span></button><button>Исполненный <span class="cnt">3</span></button></div><button class="btn pri filt-cta" data-create="v-waybill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать накладную</button></div>
               <div class="tblwrap"><div class="scroll"><table>
                 <thead><tr><th>Номер документа</th><th>Дата составления</th><th>Тип документа</th><th>Отправитель</th><th>Получатель</th><th>Статус</th><th></th></tr></thead>
                 <tbody>
@@ -929,7 +948,7 @@ td:first-child{color:var(--ink)}
               <button class="tl-cat" data-cat="utilaccept"><span>Приёмка продуктов утилизации</span><span class="tl-n">1</span></button>
             </aside>
             <div class="tl-main">
-              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № акта, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">12</span></button><button>Черновик <span class="cnt">3</span></button><button>На согласовании <span class="cnt">3</span></button><button>Утверждён <span class="cnt">5</span></button></div><button class="btn pri filt-cta" data-open="v-akt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать акт</button></div>
+              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № акта, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">12</span></button><button>Черновик <span class="cnt">3</span></button><button>На согласовании <span class="cnt">3</span></button><button>Утверждён <span class="cnt">5</span></button></div><button class="btn pri filt-cta" data-create="v-akt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать акт</button></div>
               <div class="tblwrap"><div class="scroll"><table>
                 <thead><tr><th>Номер акта</th><th>Дата составления</th><th>Тип акта</th><th>Воинская часть</th><th>Статус</th><th></th></tr></thead>
                 <tbody>
@@ -1103,7 +1122,7 @@ td:first-child{color:var(--ink)}
       <!-- АКТ ПЕРЕСОРТИЦЫ (detail) -->
       <section class="view" id="v-akt" data-crumb="Операции|Акт пересортицы|Просмотр">
         <div class="dform-top"><button class="backbtn" data-go="ops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg> К актам</button><span class="dtitle"><b>Акт пересортицы&nbsp;№</b><code>2</code></span><span class="pill" data-s="approval">На согласовании</span><span class="modechip view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> Только просмотр</span><span class="modechip edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16 3l4 4L8 19l-4 1 1-4z"/></svg> Редактирование</span><span class="spacer"></span><span class="tv"><button class="btn ghost sm">Печать</button><button class="btn sec sm" data-edit>Редактировать</button></span><span class="te"><button class="btn ghost sm" data-cancel>Отмена</button><button class="btn pri sm" data-save>Сохранить</button></span></div>
-        <div class="esign wfp"><span class="lbl">Электронная подпись:</span><span class="selc">Выберите сертификат — ГОСТ 34.310-2004…</span><button class="btn sec sm">Подписать</button></div>
+        <div class="esign wfp"><span class="lbl">Электронная подпись:</span><span class="selc">Выберите сертификат — ГОСТ 34.310-2004…</span><button class="btn sec sm" data-nca>Подписать</button></div>
         <div class="panel wfp"><div class="panel-h">Жизненный цикл акта</div>
           <div class="flow" style="padding:10px 4px 2px">
             <div class="fstep done"><span class="bar"></span><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span class="ft">Черновик</span><span class="fm">Исполнитель в/ч</span></div>
@@ -1299,6 +1318,26 @@ td:first-child{color:var(--ink)}
   </div>
 </div>
 
+<div class="modal-bg" id="ncaModal">
+  <div class="modal nca">
+    <div class="nca-h"><span class="nca-brand"><span class="nca-mark">NCA</span>Layer</span><span class="nca-conn" id="ncaConn">Подключение…</span></div>
+    <div class="modal-b">
+      <div class="nca-sub">Подписание документа электронной цифровой подписью (ГОСТ 34.310-2004)</div>
+      <label class="nca-fl"><span>Хранилище ключей</span><div class="selbox"><select id="ncaStore"><option>PKCS12 — файловая система</option><option>Удостоверение личности (ID-карта)</option><option>Kaztoken</option><option>eToken 72K / 5110</option><option>JaCarta</option></select></div></label>
+      <div class="nca-fl"><span>Сертификат подписи</span>
+        <div class="nca-cert">
+          <div class="nca-ava" id="ncaAva">АД</div>
+          <div class="nca-ct"><div class="nca-cn" id="ncaCn">САТОВ БЕЙБІТ</div><div class="nca-meta">ИИН 900101300000 · GOST34.310 · действителен до 21.06.2027</div></div>
+          <span class="pill" data-s="approved">Действителен</span>
+        </div>
+      </div>
+      <div class="nca-doc">Документ: <b id="ncaDocName">—</b></div>
+      <div class="nca-status" id="ncaStatus"></div>
+    </div>
+    <div class="modal-f"><button class="btn ghost sm" id="ncaCancel">Отмена</button><button class="btn pri sm" id="ncaSign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 20h9M16 3l4 4L8 19l-4 1 1-4z"/></svg> Подписать</button></div>
+  </div>
+</div>
+
 <script>
 (function(){
   var LANG='ru';
@@ -1339,6 +1378,15 @@ td:first-child{color:var(--ink)}
   rail.forEach(function(b){b.addEventListener('click',function(){if(b.dataset.v)show(b.dataset.v)})});
   document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){show(b.dataset.go)})});
   document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();show(b.dataset.open.replace('v-',''))})});
+  function dtitleText(el){if(!el)return 'документ';return Array.prototype.map.call(el.children,function(c){return (c.textContent||'').trim();}).filter(Boolean).join(' ')||'документ';}
+  // Создание документа — открыть черновиком с начала жизненного цикла
+  function createDoc(vid){var v=vid.replace('v-','');show(v);var el=document.getElementById(vid);if(!el)return;el.classList.remove('editing');
+    if(typeof FLOWVIEW!=='undefined'&&FLOWVIEW&&FLOWVIEW[vid]){flowState[vid]={idx:0,rejected:false};flowRender(vid);}
+    var code=el.querySelector('.dtitle code');if(code){if(code.getAttribute('data-orig')===null||code.getAttribute('data-orig')===undefined)code.setAttribute('data-orig',code.textContent);code.textContent='новый (черновик)';}
+  }
+  document.querySelectorAll('[data-create]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();createDoc(b.getAttribute('data-create'));})});
+  // при открытии существующего документа — вернуть номер
+  document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){var t=document.getElementById(b.dataset.open);if(t){var c=t.querySelector('.dtitle code');if(c&&c.getAttribute('data-orig'))c.textContent=c.getAttribute('data-orig');}})});
   // subnav
   document.querySelectorAll('.subnav').forEach(function(sn){sn.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){sn.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');var host=sn.closest('.view');host.querySelectorAll('.subpane').forEach(function(p){p.classList.remove('on')});host.querySelector('#p-'+b.dataset.p).classList.add('on');var base=(host.getAttribute('data-crumb')||'').split('|')[0];crumb.innerHTML='<span>'+base+'</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg><b>'+b.textContent.trim()+'</b>';})})});
   // detail tabs
@@ -1494,6 +1542,37 @@ td:first-child{color:var(--ink)}
     if(modal.dataset.req==='1' && !document.getElementById('cmtText').value.trim()){document.getElementById('cmtWarn').style.display='block';return;}
     modal.classList.remove('on');var fn=pendingOk;pendingOk=null;if(fn)fn();
   });
+  // ===== Подписание ЭЦП через NCALayer (с демо-режимом) =====
+  var ncaModal=document.getElementById('ncaModal'),ncaOk=null,ncaWs=null;
+  function ncaCloseWs(){try{if(ncaWs)ncaWs.close();}catch(e){}ncaWs=null;}
+  function openNca(docName,onOk){
+    ncaOk=onOk||null;
+    document.getElementById('ncaDocName').textContent=docName||'документ';
+    document.getElementById('ncaStatus').textContent='';document.getElementById('ncaStatus').className='nca-status';
+    var sb=document.getElementById('ncaSign');sb.disabled=false;
+    var conn=document.getElementById('ncaConn');conn.textContent='Подключение…';conn.className='nca-conn';
+    // синхронизировать сертификат с текущим пользователем
+    var av=document.getElementById('avatar'),un=document.getElementById('uname');
+    if(av)document.getElementById('ncaAva').textContent=av.textContent;
+    if(un)document.getElementById('ncaCn').textContent=(un.textContent||'').toUpperCase();
+    ncaModal.classList.add('on');
+    ncaCloseWs();
+    try{
+      var ws=new WebSocket('wss://127.0.0.1:13579/');var done=false;
+      var to=setTimeout(function(){if(done)return;done=true;try{ws.close();}catch(e){}conn.textContent='Демо-режим (NCALayer не запущен)';conn.className='nca-conn off';},1500);
+      ws.onopen=function(){if(done)return;done=true;clearTimeout(to);conn.textContent='NCALayer подключён';conn.className='nca-conn ok';ncaWs=ws;};
+      ws.onerror=function(){if(done)return;done=true;clearTimeout(to);conn.textContent='Демо-режим (NCALayer не запущен)';conn.className='nca-conn off';};
+    }catch(e){conn.textContent='Демо-режим';conn.className='nca-conn off';}
+  }
+  document.getElementById('ncaCancel').addEventListener('click',function(){ncaModal.classList.remove('on');ncaCloseWs();ncaOk=null;});
+  ncaModal.addEventListener('click',function(e){if(e.target===ncaModal){ncaModal.classList.remove('on');ncaCloseWs();ncaOk=null;}});
+  document.getElementById('ncaSign').addEventListener('click',function(){
+    var sb=this,st=document.getElementById('ncaStatus');sb.disabled=true;st.className='nca-status busy';st.textContent='Подписание документа…';
+    setTimeout(function(){st.className='nca-status ok';st.textContent='✓ Документ подписан ЭЦП';
+      setTimeout(function(){ncaModal.classList.remove('on');ncaCloseWs();var fn=ncaOk;ncaOk=null;if(fn)fn();},650);
+    },850);
+  });
+  document.querySelectorAll('[data-nca]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var v=b.closest('.view');openNca(dtitleText(v&&v.querySelector('.dtitle')),null);})});
   // ===== Рабочий жизненный цикл документов =====
   var _CHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
   var _X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -1571,7 +1650,8 @@ td:first-child{color:var(--ink)}
     cta.innerHTML='<span class="ic">'+icon+'</span><span class="tx"><span class="a">'+eyebrow+'</span><span class="b">'+info.title+'</span><span class="c">'+info.desc+'</span></span><span class="acts">'+acts+'</span>';
     cta.querySelectorAll('[data-fa]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
       var target=b.getAttribute('data-fa'),kind=b.getAttribute('data-fk');
-      openCmt(kind,function(){flowTransition(vid,target);});
+      if(kind==='sign'){openNca(dtitleText(view.querySelector('.dtitle')),function(){flowTransition(vid,target);});}
+      else openCmt(kind,function(){flowTransition(vid,target);});
     });});
     if(LANG==='kz'&&typeof translateDom==='function')translateDom(view);
   }
