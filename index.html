@@ -351,7 +351,15 @@ tr.addedrow td{position:relative}
 .nca-doc{font-size:12px;color:var(--ink-2);margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)}
 .nca-status{font-size:12px;font-weight:600;margin-top:10px;min-height:16px}
 .nca-status.ok{color:var(--ok)}.nca-status.busy{color:var(--info)}
-@media(max-width:1000px){.shell{grid-template-columns:1fr}.rail{display:none}.tiles,.mods,.kpis,.mgrid{grid-template-columns:repeat(2,1fr)}.dgrid{grid-template-columns:1fr}.loginwrap{grid-template-columns:1fr}.lbrand{display:none}}
+.burger{display:none;width:34px;height:34px;place-items:center;border:1px solid var(--border);background:var(--surface);border-radius:8px;color:var(--ink);cursor:pointer;flex:none;padding:0}
+.burger:hover{background:var(--paper)}
+.rail-backdrop{position:fixed;inset:0;background:rgba(9,14,24,.46);z-index:55;opacity:0;visibility:hidden;transition:opacity .22s ease}
+.rail-backdrop.on{opacity:1;visibility:visible}
+@media(max-width:1000px){.shell{grid-template-columns:1fr}
+  .rail{position:fixed;top:0;left:0;bottom:0;width:250px;max-width:82vw;z-index:60;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 26px rgba(0,0,0,.3)}
+  .shell:not(.auth) .rail.open{transform:translateX(0)}
+  .burger{display:grid}
+  .tiles,.mods,.kpis,.mgrid{grid-template-columns:repeat(2,1fr)}.dgrid{grid-template-columns:1fr}.loginwrap{grid-template-columns:1fr}.lbrand{display:none}}
 </style>
 </head>
 <body>
@@ -374,9 +382,11 @@ tr.addedrow td{position:relative}
       <button data-logout><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg> Выйти</button>
     </nav>
   </aside>
+  <div class="rail-backdrop" id="railBackdrop"></div>
 
   <div class="main">
     <div class="topbar">
+      <button class="burger" id="burger" aria-label="Меню"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
       <div class="crumb" id="crumb"><b>Обзор проекта</b></div>
       <span class="orgctx"><span class="dot"></span> в/ч 06708</span>
       <div class="tb-tools"><span class="lang"><button class="on" data-lang="ru">RU</button><button data-lang="kz">KZ</button></span>
@@ -1615,8 +1625,10 @@ tr.addedrow td{position:relative}
     if(modal.dataset.req==='1' && !document.getElementById('cmtText').value.trim()){document.getElementById('cmtWarn').style.display='block';return;}
     modal.classList.remove('on');var fn=pendingOk;pendingOk=null;if(fn)fn();
   });
-  // ===== Интеграция с NCALayer (kz.gov.pki.knca.commonUtils) =====
-  var NCA={ws:null,cb:null,
+  // ===== Интеграция с NCALayer (новый API kz.gov.pki.knca.basics) =====
+  var NCA={ws:null,cb:null,version:'',
+    // Список хранилищ, разрешённых для выбора в окне NCALayer
+    STORES:['PKCS12','AKKZIDCardStore','AKKaztokenStore','AKKZTUMARStore','AKEToken','AKaKey','AKR3','AKJaCartaStore'],
     isOpen:function(){return this.ws&&this.ws.readyState===1;},
     connect:function(onReady,onFail){
       if(this.isOpen()){onReady&&onReady();return;}
@@ -1624,19 +1636,31 @@ tr.addedrow td{position:relative}
         var to=setTimeout(function(){if(done)return;done=true;try{ws.close();}catch(e){}self.ws=null;onFail&&onFail('timeout');},3000);
         ws.onopen=function(){if(done)return;done=true;clearTimeout(to);onReady&&onReady();};
         ws.onerror=function(){if(done)return;done=true;clearTimeout(to);self.ws=null;onFail&&onFail('error');};
-        ws.onmessage=function(ev){var r;try{r=JSON.parse(ev.data);}catch(e){return;}if(!r||r.code===undefined)return;var c=self.cb;self.cb=null;if(c)c(r);};
+        ws.onmessage=function(ev){var r;try{r=JSON.parse(ev.data);}catch(e){return;}
+          if(r&&r.result&&r.result.version&&r.status===undefined&&r.code===undefined){self.version=r.result.version;return;}
+          if(!r||(r.status===undefined&&r.code===undefined))return;var c=self.cb;self.cb=null;if(c)c(r);};
         ws.onclose=function(){self.ws=null;};
       }catch(e){onFail&&onFail('exception');}
     },
-    send:function(method,args,cb){this.cb=cb;this.ws.send(JSON.stringify({module:'kz.gov.pki.knca.commonUtils',method:method,args:args||[]}));},
-    getActiveTokens:function(cb){this.send('getActiveTokens',[],cb);},
-    getKeyInfo:function(s,cb){this.send('getKeyInfo',[s],cb);},
-    signXml:function(s,xml,cb){this.send('signXml',[s,'SIGNATURE',xml,'',''],cb);}
+    // Новый модуль: единый метод sign (формат xml). eu — extKeyUsage OIDs (AUTH/SIGN)
+    sign:function(data,eu,cb){this.cb=cb;this.ws.send(JSON.stringify({module:'kz.gov.pki.knca.basics',method:'sign',
+      args:{allowedStorages:this.STORES,format:'xml',data:data,signingParams:{},
+        signerParams:{extKeyUsageOids:eu||['1.3.6.1.5.5.7.3.4']},
+        locale:(typeof LANG!=='undefined'&&LANG==='kz')?'kk':'ru'}}));}
   };
+  var EKU_AUTH=['1.3.6.1.5.5.7.3.2'],EKU_SIGN=['1.3.6.1.5.5.7.3.4'];
+  function ncaIsOk(r){return !!(r&&r.status===true);}
+  function ncaMsg(r){return (r&&(r.message||(r.body&&r.body.message)))||'операция отменена';}
+  function ncaSigned(r){try{var b=r&&r.body&&r.body.result;return b?(b[0]||b):'';}catch(e){return '';}}
   function xmlEsc(s){return String(s||'').replace(/[<>&'"]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c];});}
   function buildDocXml(name){return '<document xmlns="http://isub.mod.gov.kz"><title>'+xmlEsc(name)+'</title><issuer>ИСУБ</issuer></document>';}
+  function buildAuthXml(){return '<auth xmlns="http://isub.mod.gov.kz"><action>login</action><system>ИСУБ</system></auth>';}
   function iinFrom(dn){var m=/(?:SERIALNUMBER|serialNumber)=\s*IIN\s*([0-9]{12})/i.exec(dn||'')||/\bIIN([0-9]{12})/i.exec(dn||'')||/\b([0-9]{12})\b/.exec(dn||'');return m?m[1]:'';}
   function initialsOf(name){var p=String(name||'').trim().split(/\s+/).filter(Boolean);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||'ЭЦ';}
+  // Разбор subject сертификата (CN + ИИН) из подписанного XML — для входа по ЭЦП
+  function ncaB64(xml,tag){var m=new RegExp('<(?:[\\w-]+:)?'+tag+'>([\\s\\S]*?)</(?:[\\w-]+:)?'+tag+'>').exec(xml||'');return m?m[1].replace(/\s+/g,''):'';}
+  function derFields(bytes,a,b,c){var res=[];for(var i=0;i<bytes.length-6;i++){if(bytes[i]===0x06&&bytes[i+1]===0x03&&bytes[i+2]===a&&bytes[i+3]===b&&bytes[i+4]===c){var p=i+5,len=bytes[p+1];if(len&0x80)continue;var sl=bytes.subarray(p+2,p+2+len),v;try{v=new TextDecoder('utf-8').decode(sl);}catch(e){v='';for(var k=0;k<sl.length;k++)v+=String.fromCharCode(sl[k]);}res.push(v);}}return res;}
+  function parseCert(signedXml){var out={cn:'',iin:''};try{var b64=ncaB64(signedXml,'X509Certificate');if(!b64)return out;var bin=atob(b64),bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);var cns=derFields(bytes,0x55,0x04,0x03);out.cn=cns.length?cns[cns.length-1]:'';var sns=derFields(bytes,0x55,0x04,0x05);out.iin=iinFrom(sns.join(' ')||out.cn);}catch(e){}return out;}
   // ---- Подписание документа ----
   var ncaModal=document.getElementById('ncaModal'),ncaOk=null,ncaReady=false;
   function openNca(docName,onOk){
@@ -1650,12 +1674,7 @@ tr.addedrow td{position:relative}
     var conn=document.getElementById('ncaConn');conn.textContent='Подключение к NCALayer…';conn.className='nca-conn';
     ncaModal.classList.add('on');
     NCA.connect(function(){
-      var verified=false;var vt=setTimeout(function(){if(verified)return;conn.textContent='Демо-режим (NCALayer не отвечает)';conn.className='nca-conn off';ncaReady=false;},2500);
-      NCA.getActiveTokens(function(r){verified=true;clearTimeout(vt);
-        if(r&&r.code==='200'){conn.textContent='NCALayer подключён';conn.className='nca-conn ok';ncaReady=true;
-          if(r.responseObject){var sel=document.getElementById('ncaStore');sel.innerHTML='<option value="PKCS12">PKCS12 — файл ключа</option>';r.responseObject.forEach(function(tok){sel.insertAdjacentHTML('beforeend','<option value="'+tok+'">'+tok+'</option>');});}
-        } else {conn.textContent='Демо-режим (NCALayer не отвечает)';conn.className='nca-conn off';ncaReady=false;}
-      });
+      setTimeout(function(){conn.textContent='NCALayer подключён'+(NCA.version?(' · v'+NCA.version):'');conn.className='nca-conn ok';ncaReady=true;},150);
     },function(){conn.textContent='Демо-режим (NCALayer не запущен)';conn.className='nca-conn off';ncaReady=false;});
   }
   document.getElementById('ncaCancel').addEventListener('click',function(){ncaModal.classList.remove('on');ncaOk=null;});
@@ -1666,9 +1685,9 @@ tr.addedrow td{position:relative}
     if(ncaReady&&NCA.isOpen()){
       st.textContent='Подписание в NCALayer…';
       var xml=buildDocXml(document.getElementById('ncaDocName').textContent);
-      NCA.signXml(document.getElementById('ncaStore').value||'PKCS12',xml,function(r){
-        if(r&&r.code==='200'){finishOk();}
-        else{st.className='nca-status';st.style.color='var(--danger)';st.textContent='Ошибка: '+((r&&r.message)||'подпись отменена');sb.disabled=false;}
+      NCA.sign(xml,EKU_SIGN,function(r){
+        if(ncaIsOk(r)){finishOk();}
+        else{st.className='nca-status';st.style.color='var(--danger)';st.textContent='Ошибка: '+ncaMsg(r);sb.disabled=false;}
       });
     } else { st.textContent='Подписание документа…';setTimeout(finishOk,750); }
   });
@@ -1688,19 +1707,24 @@ tr.addedrow td{position:relative}
     var conn=document.getElementById('ecpConn');conn.textContent='Подключение к NCALayer…';conn.className='ecp-conn busy';eb.disabled=true;
     function fail(msg){eb.disabled=false;conn.textContent=msg;conn.className='ecp-conn err';}
     NCA.connect(function(){
-      var verified=false;var vt=setTimeout(function(){if(verified)return;fail('NCALayer не отвечает. Войдите по ролям (демо, слева).');},2500);
-      NCA.getActiveTokens(function(a){verified=true;clearTimeout(vt);
-        if(!(a&&a.code==='200')){fail('NCALayer не отвечает. Войдите по ролям (демо, слева).');return;}
-        conn.textContent='Выберите ключ и введите пароль в окне NCALayer…';conn.className='ecp-conn busy';
-        NCA.getKeyInfo(document.getElementById('ecpStore').value||'PKCS12',function(r){eb.disabled=false;
-          if(r&&r.code==='200'&&r.responseObject){var o=r.responseObject;var name=o.subjectCn||o.subjectDn||'Пользователь';var iin=iinFrom(o.subjectDn||o.subjectCn);
-            conn.textContent='';conn.className='ecp-conn';
-            doLogin({ini:initialsOf(name),name:name,role:'Вход по ЭЦП'+(iin?(' · ИИН '+iin):''),user:'ecp'});
-          } else {conn.textContent='Ошибка: '+((r&&r.message)||'сертификат не выбран');conn.className='ecp-conn err';}
-        });
+      conn.textContent='Выберите ключ и введите пароль в окне NCALayer…';conn.className='ecp-conn busy';
+      NCA.sign(buildAuthXml(),EKU_AUTH,function(r){eb.disabled=false;
+        if(ncaIsOk(r)){var c=parseCert(ncaSigned(r));var name=c.cn||'Владелец сертификата';
+          conn.textContent='';conn.className='ecp-conn';
+          doLogin({ini:initialsOf(name),name:name,role:'Вход по ЭЦП'+(c.iin?(' · ИИН '+c.iin):''),user:'ecp'});
+        } else {conn.textContent='Ошибка: '+ncaMsg(r);conn.className='ecp-conn err';}
       });
     },function(){fail('NCALayer не найден. Запустите NCALayer — или войдите по ролям (демо, слева).');});
   });})();
+  // ---- Бургер-меню (адаптивный сайдбар) ----
+  (function(){var burger=document.getElementById('burger'),rail=document.querySelector('.rail'),bd=document.getElementById('railBackdrop'),nav=document.getElementById('railnav');
+    function close(){if(rail)rail.classList.remove('open');if(bd)bd.classList.remove('on');}
+    function open(){if(rail)rail.classList.add('open');if(bd)bd.classList.add('on');}
+    if(burger)burger.addEventListener('click',function(e){e.stopPropagation();if(rail&&rail.classList.contains('open'))close();else open();});
+    if(bd)bd.addEventListener('click',close);
+    if(nav)nav.addEventListener('click',function(e){if(e.target.closest('button'))close();});
+    window.addEventListener('resize',function(){if(window.innerWidth>1000)close();});
+  })();
   // ===== Рабочий жизненный цикл документов =====
   var _CHK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
   var _X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg>';
