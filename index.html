@@ -281,6 +281,15 @@ td:first-child{color:var(--ink)}
 .view.editing .dval.ro{background:var(--surface-2);color:var(--ink-2)}
 .view.editing .dval.ta{min-height:64px;align-items:flex-start}
 .view.editing .dval:not(.ro):hover{border-color:var(--ink-3)}
+.view.editing .dval[contenteditable]{cursor:text}
+.dval[contenteditable]:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+/* добавленные строки/позиции при редактировании */
+tr.addedrow input.rcell{width:100%;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:12.5px;padding:6px 9px}
+tr.addedrow input.rcell:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+tr.addedrow td{position:relative}
+.delrow{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:0;background:color-mix(in srgb,var(--danger) 13%,transparent);color:var(--danger);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center;z-index:2}
+.delrow:hover{background:var(--danger);color:#fff}
+.subcard.addedcard{outline:1px dashed color-mix(in srgb,var(--accent) 40%,transparent)}
 /* ЕДИНЫЙ СТИЛЬ ТАБЛИЦ — везде плоские, банд-шапка + разделители строк */
 /* нижняя граница таблицы, если нет подвала (.tfoot) */
 .tblwrap:not(:has(.tfoot)) tbody tr:last-child td{border-bottom:1px solid var(--border)}
@@ -982,7 +991,7 @@ td:first-child{color:var(--ink)}
               <button class="tl-cat" data-cat="explosion"><span>Разрешение на взрывные работы</span><span class="tl-n">1</span></button>
             </aside>
             <div class="tl-main">
-              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № документа, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">8</span></button><button>Черновик <span class="cnt">2</span></button><button>На согласовании <span class="cnt">2</span></button><button>Утверждён <span class="cnt">4</span></button></div><button class="btn pri filt-cta" data-open="v-attestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать документ</button></div>
+              <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Поиск по № документа, части…"></div><div class="qseg"><button class="on">Все <span class="cnt">8</span></button><button>Черновик <span class="cnt">2</span></button><button>На согласовании <span class="cnt">2</span></button><button>Утверждён <span class="cnt">4</span></button></div><button class="btn pri filt-cta" data-create="v-attestat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Создать документ</button></div>
               <div class="tblwrap"><div class="scroll"><table>
                 <thead><tr><th>Номер документа</th><th>Дата</th><th>Тип документа</th><th>Воинская часть</th><th>Статус</th><th></th></tr></thead>
                 <tbody>
@@ -1380,9 +1389,12 @@ td:first-child{color:var(--ink)}
   document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();show(b.dataset.open.replace('v-',''))})});
   function dtitleText(el){if(!el)return 'документ';return Array.prototype.map.call(el.children,function(c){return (c.textContent||'').trim();}).filter(Boolean).join(' ')||'документ';}
   // Создание документа — открыть черновиком с начала жизненного цикла
-  function createDoc(vid){var v=vid.replace('v-','');show(v);var el=document.getElementById(vid);if(!el)return;el.classList.remove('editing');
+  function createDoc(vid){var v=vid.replace('v-','');show(v);var el=document.getElementById(vid);if(!el)return;
     if(typeof FLOWVIEW!=='undefined'&&FLOWVIEW&&FLOWVIEW[vid]){flowState[vid]={idx:0,rejected:false};flowRender(vid);}
-    var code=el.querySelector('.dtitle code');if(code){if(code.getAttribute('data-orig')===null||code.getAttribute('data-orig')===undefined)code.setAttribute('data-orig',code.textContent);code.textContent='новый (черновик)';}
+    var code=el.querySelector('.dtitle code');if(code){if(!code.hasAttribute('data-orig'))code.setAttribute('data-orig',code.textContent);code.textContent='новый (черновик)';}
+    // на первую вкладку и в режим редактирования — заполнять с нуля
+    var dt=el.querySelector('.dtabs button');if(dt&&!dt.classList.contains('on'))dt.click();
+    setMode(el,true);
   }
   document.querySelectorAll('[data-create]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();createDoc(b.getAttribute('data-create'));})});
   // при открытии существующего документа — вернуть номер
@@ -1506,14 +1518,56 @@ td:first-child{color:var(--ink)}
   })();
   // Просмотр ↔ Редактирование
   function setMode(view,editing){
+    if(!view)return;
     view.classList.toggle('editing',editing);
+    view.querySelectorAll('.dval').forEach(function(d){
+      if(editing){ if(!d.classList.contains('ro')){ if(!d.hasAttribute('data-o'))d.setAttribute('data-o',d.textContent); d.setAttribute('contenteditable','true'); } }
+      else { d.removeAttribute('contenteditable'); }
+    });
     var b=crumb.querySelector('b:last-of-type');
     if(b) b.textContent=editing?'Редактирование':'Просмотр';
   }
+  function saveDoc(view){ if(!view)return;
+    // зафиксировать добавленные строки таблиц (input → текст)
+    view.querySelectorAll('tr.addedrow').forEach(function(tr){
+      tr.querySelectorAll('input.rcell').forEach(function(inp){inp.parentNode.textContent=(inp.value||'').trim()||'—';});
+      var dr=tr.querySelector('.delrow'); if(dr)dr.remove(); tr.classList.remove('addedrow');
+    });
+    // зафиксировать добавленные позиции (subcard)
+    view.querySelectorAll('.subcard.addedcard').forEach(function(sc){sc.classList.remove('addedcard');});
+    view.querySelectorAll('.dval[data-o]').forEach(function(d){d.removeAttribute('data-o');});
+    setMode(view,false);
+  }
+  function cancelDoc(view){ if(!view)return;
+    view.querySelectorAll('.dval[data-o]').forEach(function(d){d.textContent=d.getAttribute('data-o');d.removeAttribute('data-o');});
+    view.querySelectorAll('tr.addedrow, .subcard.addedcard').forEach(function(el){el.remove();});
+    setMode(view,false);
+  }
   document.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){setMode(b.closest('.view'),true)})});
-  document.querySelectorAll('[data-cancel],[data-save]').forEach(function(b){b.addEventListener('click',function(){setMode(b.closest('.view'),false)})});
-  // при открытии документа всегда режим Просмотр
-  document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){var t=document.getElementById(b.dataset.open);if(t)t.classList.remove('editing')})});
+  document.querySelectorAll('[data-save]').forEach(function(b){b.addEventListener('click',function(){saveDoc(b.closest('.view'))})});
+  document.querySelectorAll('[data-cancel]').forEach(function(b){b.addEventListener('click',function(){cancelDoc(b.closest('.view'))})});
+  // ---- Добавить строку / позицию ----
+  function addTableRow(table){var tb=table.querySelector('tbody');if(!tb)return;var ths=table.querySelectorAll('thead th');
+    var tr=document.createElement('tr');tr.className='addedrow';
+    ths.forEach(function(th,i){var ph=(th.textContent||'').trim();var td=document.createElement('td');
+      if(i===ths.length-1&&!ph){td.className='rowact';}else{var inp=document.createElement('input');inp.className='rcell';inp.placeholder=ph;td.appendChild(inp);}
+      tr.appendChild(td);});
+    var del=document.createElement('button');del.type='button';del.className='delrow';del.textContent='×';del.title='Удалить строку';del.addEventListener('click',function(){tr.remove();});
+    (tr.lastElementChild||tr).appendChild(del); tb.appendChild(tr);
+    var f=tr.querySelector('input');if(f)f.focus();
+  }
+  function addItem(btn){var host=btn.closest('.dpane')||btn.closest('.panel')||btn.closest('.dsec')||btn.parentElement;if(!host)return;
+    var sub=host.querySelector('.subcard');
+    if(sub){var c=sub.cloneNode(true);c.classList.add('addedcard');
+      var tn=c.querySelector('.subcard-h');if(tn){var x=tn.querySelector('.x');tn.childNodes[0]&&(tn.childNodes[0].nodeValue='Новая позиция ');if(x)x.onclick=function(){c.remove();};}
+      c.querySelectorAll('.dval:not(.ro)').forEach(function(d){d.textContent='';d.setAttribute('contenteditable','true');});
+      sub.parentNode.appendChild(c);c.scrollIntoView({block:'nearest'});return;}
+    var table=host.querySelector('table');if(table)addTableRow(table);
+  }
+  document.querySelectorAll('button').forEach(function(b){if(/^\s*Добавить(\s|$)/.test(b.textContent||'')){b.addEventListener('click',function(e){e.stopPropagation();addItem(b);});}});
+  document.querySelectorAll('.subcard-h .x').forEach(function(x){x.addEventListener('click',function(){var s=x.closest('.subcard');if(s)s.remove();});});
+  // при открытии существующего документа всегда режим Просмотр
+  document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){var t=document.getElementById(b.dataset.open);if(t)setMode(t,false)})});
   // comment modal
   var modal=document.getElementById('cmtModal'),pendingOk=null,cmtCfg={
     approve:{t:'Согласовать',s:'Документ перейдёт на следующий этап маршрута.',ic:'good',req:false,icon:'<path d="M20 6L9 17l-5-5"/>'},
