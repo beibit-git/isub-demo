@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ИСУБ — демонстрационный интерфейс информационной системы учёта боеприпасов">
 <title>ИСУБ — Информационная система учёта боеприпасов</title>
 <style>
 :root{
@@ -317,6 +323,8 @@ td:first-child{color:var(--ink)}
 .modal-f{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
 @media(max-width:1000px){.shell{grid-template-columns:1fr}.rail{display:none}.tiles,.mods,.kpis,.mgrid{grid-template-columns:repeat(2,1fr)}.dgrid{grid-template-columns:1fr}.loginwrap{grid-template-columns:1fr}.lbrand{display:none}}
 </style>
+</head>
+<body>
 
 <div class="shell auth">
   <aside class="rail">
@@ -1631,3 +1639,6 @@ td:first-child{color:var(--ink)}
   mo.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+</body>
+</html>
